@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # MongoDB - Document Database
+  mongodb:
+    image: mongo:7.0
+    container_name: penguins-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: penguins
+    volumes:
+      - mongo_data:/data/db
+      - ./data/init_scripts/mongo-init.js:/docker-entrypoint-initdb.d/init.js
+    networks:
+      - penguins_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Cassandra - Column-Family Database
+  cassandra:
+    image: cassandra:4.1
+    container_name: penguins-cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: PenguinsCluster
+      CASSANDRA_DATACENTER: dc1
+      CASSANDRA_RACK: rack1
+      CASSANDRA_BROADCAST_ADDRESS: cassandra
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - penguins_network
+    healthcheck:
+      test: ["CMD", "nodetool", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # Redis - In-Memory Cache
+  redis:
+    image: redis:7.2-alpine
+    container_name: penguins-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - penguins_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Database Initialization Service
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.init
+    container_name: penguins-db-init
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      cassandra:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - penguins_network
+    environment:
+      MONGO_HOST: mongodb
+      CASSANDRA_HOST: cassandra
+      REDIS_HOST: redis
+
+  # FastAPI Backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: penguins-api
+    ports:
+      - "8000:8000"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./backend:/app
+    environment:
+      MONGO_URL: mongodb://mongodb:27017/penguins
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ENV: development
+    networks:
+      - penguins_network
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: penguins-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      REACT_APP_API_URL: http://api:8000
+    networks:
+      - penguins_network
+    command: npm start
+
+volumes:
+  mongo_data:
+  cassandra_data:
+  redis_data:
+
+networks:
+  penguins_network:
+    driver: bridge

@@ -1,0 +1,406 @@
+version: '3.8'
+
+services:
+  # Config Servers (Replica Set)
+  config1:
+    image: mongo:7.0
+    container_name: penguins-config1
+    ports:
+      - "27019:27019"
+    volumes:
+      - config1_data:/data/db
+    networks:
+      - penguins_network
+    command: mongod --configsvr --replSet configrs --port 27019 --dbpath /data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27019", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  config2:
+    image: mongo:7.0
+    container_name: penguins-config2
+    ports:
+      - "27020:27020"
+    volumes:
+      - config2_data:/data/db
+    networks:
+      - penguins_network
+    command: mongod --configsvr --replSet configrs --port 27020 --dbpath /data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27020", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  config3:
+    image: mongo:7.0
+    container_name: penguins-config3
+    ports:
+      - "27021:27021"
+    volumes:
+      - config3_data:/data/db
+    networks:
+      - penguins_network
+    command: mongod --configsvr --replSet configrs --port 27021 --dbpath /data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27021", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Initialize Config Replica Set
+  init-config-rs:
+    image: mongo:7.0
+    container_name: penguins-init-config-rs
+    depends_on:
+      config1:
+        condition: service_healthy
+      config2:
+        condition: service_healthy
+      config3:
+        condition: service_healthy
+    networks:
+      - penguins_network
+    command: >
+      mongosh --host config1:27019 --eval "
+        rs.initiate({
+          _id: 'configrs',
+          members: [
+            {_id: 0, host: 'config1:27019'},
+            {_id: 1, host: 'config2:27020'},
+            {_id: 2, host: 'config3:27021'}
+          ]
+        });
+      "
+
+  # Shard 1 (Replica Set)
+  shard1-node1:
+    image: mongo:7.0
+    container_name: penguins-shard1-node1
+    ports:
+      - "27011:27011"
+    volumes:
+      - shard1_data:/data/db
+    networks:
+      - penguins_network
+    command: mongod --shardsvr --replSet shard1rs --port 27011 --dbpath /data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27011", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  shard1-node2:
+    image: mongo:7.0
+    container_name: penguins-shard1-node2
+    ports:
+      - "27012:27012"
+    volumes:
+      - shard1b_data:/data/db
+    networks:
+      - penguins_network
+    command: mongod --shardsvr --replSet shard1rs --port 27012 --dbpath /data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27012", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  init-shard1-rs:
+    image: mongo:7.0
+    container_name: penguins-init-shard1-rs
+    depends_on:
+      shard1-node1:
+        condition: service_healthy
+      shard1-node2:
+        condition: service_healthy
+    networks:
+      - penguins_network
+    command: >
+      mongosh --host shard1-node1:27011 --eval "
+        rs.initiate({
+          _id: 'shard1rs',
+          members: [
+            {_id: 0, host: 'shard1-node1:27011'},
+            {_id: 1, host: 'shard1-node2:27012'}
+          ]
+        });
+      "
+
+  # Shard 2 (Replica Set)
+  shard2-node1:
+    image: mongo:7.0
+    container_name: penguins-shard2-node1
+    ports:
+      - "27021:27021"
+    volumes:
+      - shard2_data:/data/db
+    networks:
+      - penguins_network
+    command: mongod --shardsvr --replSet shard2rs --port 27021 --dbpath /data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27021", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  shard2-node2:
+    image: mongo:7.0
+    container_name: penguins-shard2-node2
+    ports:
+      - "27022:27022"
+    volumes:
+      - shard2b_data:/data/db
+    networks:
+      - penguins_network
+    command: mongod --shardsvr --replSet shard2rs --port 27022 --dbpath /data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27022", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  init-shard2-rs:
+    image: mongo:7.0
+    container_name: penguins-init-shard2-rs
+    depends_on:
+      shard2-node1:
+        condition: service_healthy
+      shard2-node2:
+        condition: service_healthy
+    networks:
+      - penguins_network
+    command: >
+      mongosh --host shard2-node1:27021 --eval "
+        rs.initiate({
+          _id: 'shard2rs',
+          members: [
+            {_id: 0, host: 'shard2-node1:27021'},
+            {_id: 1, host: 'shard2-node2:27022'}
+          ]
+        });
+      "
+
+  # Shard 3 (Replica Set)
+  shard3-node1:
+    image: mongo:7.0
+    container_name: penguins-shard3-node1
+    ports:
+      - "27031:27031"
+    volumes:
+      - shard3_data:/data/db
+    networks:
+      - penguins_network
+    command: mongod --shardsvr --replSet shard3rs --port 27031 --dbpath /data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27031", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  shard3-node2:
+    image: mongo:7.0
+    container_name: penguins-shard3-node2
+    ports:
+      - "27032:27032"
+    volumes:
+      - shard3b_data:/data/db
+    networks:
+      - penguins_network
+    command: mongod --shardsvr --replSet shard3rs --port 27032 --dbpath /data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--port", "27032", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  init-shard3-rs:
+    image: mongo:7.0
+    container_name: penguins-init-shard3-rs
+    depends_on:
+      shard3-node1:
+        condition: service_healthy
+      shard3-node2:
+        condition: service_healthy
+    networks:
+      - penguins_network
+    command: >
+      mongosh --host shard3-node1:27031 --eval "
+        rs.initiate({
+          _id: 'shard3rs',
+          members: [
+            {_id: 0, host: 'shard3-node1:27031'},
+            {_id: 1, host: 'shard3-node2:27032'}
+          ]
+        });
+      "
+
+  # Mongos Router
+  mongos:
+    image: mongo:7.0
+    container_name: penguins-mongos
+    ports:
+      - "27017:27017"
+    depends_on:
+      init-config-rs:
+        condition: service_completed_successfully
+      init-shard1-rs:
+        condition: service_completed_successfully
+      init-shard2-rs:
+        condition: service_completed_successfully
+      init-shard3-rs:
+        condition: service_completed_successfully
+    networks:
+      - penguins_network
+    command: mongos --configdb configrs/config1:27019,config2:27020,config3:27021 --bind_ip_all
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Initialize Sharded Cluster
+  init-sharded-cluster:
+    image: mongo:7.0
+    container_name: penguins-init-sharded
+    depends_on:
+      mongos:
+        condition: service_healthy
+    networks:
+      - penguins_network
+    command: >
+      mongosh --host mongos:27017 --eval "
+        sh.addShard('shard1rs/shard1-node1:27011,shard1-node2:27012');
+        sh.addShard('shard2rs/shard2-node1:27021,shard2-node2:27022');
+        sh.addShard('shard3rs/shard3-node1:27031,shard3-node2:27032');
+        db.adminCommand({listShards: 1});
+      "
+
+  # MongoDB initialization with data
+  mongodb-init:
+    image: mongo:7.0
+    container_name: penguins-mongo-init
+    depends_on:
+      init-sharded-cluster:
+        condition: service_completed_successfully
+    volumes:
+      - ./data/init_scripts/mongo-init.js:/docker-entrypoint-initdb.d/init.js
+    networks:
+      - penguins_network
+    command: >
+      mongosh --host mongos:27017 /docker-entrypoint-initdb.d/init.js
+
+  # Cassandra - Column-Family Database
+  cassandra:
+    image: cassandra:4.1
+    container_name: penguins-cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: PenguinsCluster
+      CASSANDRA_DATACENTER: dc1
+      CASSANDRA_RACK: rack1
+      CASSANDRA_BROADCAST_ADDRESS: cassandra
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+      - ./data/init_scripts/cassandra-init.cql:/docker-entrypoint-initdb.d/init.cql
+    networks:
+      - penguins_network
+    healthcheck:
+      test: ["CMD", "nodetool", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # Redis - In-Memory Cache
+  redis:
+    image: redis:7.2-alpine
+    container_name: penguins-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - penguins_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Database Initialization Service
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.init
+    container_name: penguins-db-init
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+      cassandra:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - penguins_network
+    environment:
+      MONGO_HOST: mongos
+      CASSANDRA_HOST: cassandra
+      REDIS_HOST: redis
+
+  # FastAPI Backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: penguins-api
+    ports:
+      - "8000:8000"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./backend:/app
+    environment:
+      MONGO_URL: mongodb://mongos:27017/penguins
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ENV: development
+    networks:
+      - penguins_network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: penguins-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    environment:
+      REACT_APP_API_URL: http://localhost:8000/api
+    networks:
+      - penguins_network
+
+volumes:
+  config1_data:
+  config2_data:
+  config3_data:
+  shard1_data:
+  shard1b_data:
+  shard2_data:
+  shard2b_data:
+  shard3_data:
+  shard3b_data:
+  cassandra_data:
+  redis_data:
+
+networks:
+  penguins_network:
+    driver: bridge

@@ -1,0 +1,14 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --no-cache-dir \
+    pymongo==4.6.0 \
+    cassandra-driver==3.29.1 \
+    redis==5.0.1
+
+COPY data/init_scripts/init.py /app/init.py
+COPY penguins_lter.csv /app/penguins_lter.csv
+
+CMD ["python", "init.py"]

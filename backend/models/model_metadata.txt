@@ -1,0 +1,2 @@
+samples: 342
+trained_date: 2026-02-17 14:11:42

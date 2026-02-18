@@ -1,0 +1,320 @@
+.part5-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.part5-container h2 {
+  font-size: 2.5rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  text-align: center;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+}
+
+.subtitle {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  margin-bottom: 3rem;
+  font-weight: 300;
+}
+
+.benchmark-controls {
+  background: var(--bg-secondary);
+  padding: 3rem;
+  margin-bottom: 3rem;
+  border: 1px solid var(--border-color);
+}
+
+.buttons-group {
+  background: var(--bg-card);
+  padding: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.buttons-group h3 {
+  color: var(--accent-primary);
+  margin-bottom: 1.5rem;
+  font-size: 1.4rem;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+}
+
+.buttons-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 1.25rem 2rem;
+  font-size: 1.1rem;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  font-weight: 300;
+  transition: all 0.2s ease;
+  letter-spacing: 0.05em;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.btn-primary:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+}
+
+.btn-success {
+  background: var(--bg-primary);
+  color: var(--accent-primary);
+  font-size: 1.2rem;
+  padding: 1.5rem 3rem;
+  border: 1px solid var(--accent-primary);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: var(--bg-secondary);
+}
+
+.metric-selector {
+  display: flex;
+  gap: 2rem;
+  background: var(--bg-card);
+  padding: 2rem;
+  flex-wrap: wrap;
+}
+
+.metric-selector label {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-weight: 300;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.2s ease;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.metric-selector label:hover {
+  border-color: var(--accent-primary);
+}
+
+.metric-selector input[type='radio'] {
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent-primary);
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  font-weight: 300;
+  border: 1px solid var(--border-color);
+}
+
+.error-message {
+  background: var(--bg-primary);
+  border: 1px solid var(--error);
+  color: var(--error);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  font-weight: 300;
+}
+
+.results-container {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.results-summary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 3rem;
+  margin-bottom: 3rem;
+  border: 1px solid var(--border-color);
+}
+
+.results-summary h3 {
+  margin-bottom: 1.5rem;
+  font-size: 1.6rem;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  color: var(--accent-primary);
+}
+
+.results-summary p {
+  margin: 1rem 0;
+  font-weight: 300;
+  color: var(--text-secondary);
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+@media (max-width: 1024px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-card {
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.chart-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 48px rgba(0, 212, 255, 0.3);
+}
+
+.chart-card h3 {
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 400px;
+  width: 100%;
+}
+
+.detailed-results {
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 3rem;
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--border-color);
+  margin-bottom: 3rem;
+  overflow-x: auto;
+}
+
+.detailed-results h3 {
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 1rem;
+}
+
+.results-table thead {
+  background: var(--bg-secondary);
+  color: var(--accent-primary);
+}
+
+.results-table th,
+.results-table td {
+  padding: 1.25rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.results-table th:first-child,
+.results-table td.db-name {
+  text-align: left;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+}
+
+.results-table th {
+  letter-spacing: 0.05em;
+  font-weight: 300;
+  font-size: 0.95rem;
+}
+
+.results-table td {
+  color: var(--text-primary);
+  font-weight: 300;
+}
+
+.results-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.results-table tbody tr:hover {
+  background: var(--bg-secondary);
+}
+
+.results-table tbody tr:nth-child(even) {
+  background: var(--bg-secondary);
+}
+
+.winner-card {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 3rem;
+  text-align: center;
+  border: 1px solid var(--accent-primary);
+}
+
+.winner-card h3 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  color: var(--accent-primary);
+}
+
+.winner-card p {
+  font-size: 1.3rem;
+  margin: 1.5rem 0;
+  font-weight: 300;
+  color: var(--text-secondary);
+}
+
+.winner-card strong {
+  font-size: 2rem;
+  letter-spacing: 0.1em;
+  font-weight: 400;
+  color: var(--accent-primary);
+}
