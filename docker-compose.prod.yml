@@ -1,0 +1,143 @@
+version: '3.8'
+
+services:
+  # MongoDB - Document Database
+  mongodb:
+    image: mongo:${MONGO_VERSION:-7.0}
+    container_name: ${PROJECT_NAME:-penguins}-mongo
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-penguins}
+    volumes:
+      - mongo_data:/data/db
+      - ./data/init_scripts/mongo-init.js:/docker-entrypoint-initdb.d/init.js
+    networks:
+      - penguins_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Cassandra - Column-Family Database
+  cassandra:
+    image: cassandra:${CASSANDRA_VERSION:-4.1}
+    container_name: ${PROJECT_NAME:-penguins}-cassandra
+    ports:
+      - "${CASSANDRA_PORT:-9042}:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: ${CASSANDRA_CLUSTER_NAME:-PenguinsCluster}
+      CASSANDRA_DATACENTER: ${CASSANDRA_DATACENTER:-dc1}
+      CASSANDRA_RACK: ${CASSANDRA_RACK:-rack1}
+      CASSANDRA_BROADCAST_ADDRESS: cassandra
+      MAX_HEAP_SIZE: ${CASSANDRA_MAX_HEAP:-512M}
+      HEAP_NEWSIZE: ${CASSANDRA_HEAP_NEWSIZE:-100M}
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - penguins_network
+    healthcheck:
+      test: ["CMD", "nodetool", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis - In-Memory Cache
+  redis:
+    image: redis:${REDIS_VERSION:-7.2-alpine}
+    container_name: ${PROJECT_NAME:-penguins}-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - penguins_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    command: redis-server --maxmemory ${REDIS_MAX_MEMORY:-256mb} --maxmemory-policy allkeys-lru
+
+  # Database Initialization Service
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.init
+    container_name: ${PROJECT_NAME:-penguins}-db-init
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      cassandra:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - penguins_network
+    environment:
+      MONGO_HOST: mongodb
+      CASSANDRA_HOST: cassandra
+      REDIS_HOST: redis
+    restart: on-failure
+
+  # FastAPI Backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME:-penguins}-api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    volumes:
+      - ./backend:/app
+    environment:
+      MONGO_URL: mongodb://mongodb:27017/${MONGO_DATABASE:-penguins}
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      CASSANDRA_KEYSPACE: ${CASSANDRA_KEYSPACE:-penguins_keyspace}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ENV: ${ENVIRONMENT:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    networks:
+      - penguins_network
+    restart: unless-stopped
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 ${UVICORN_ARGS:---workers 2}
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:${API_PORT:-8000}}
+    container_name: ${PROJECT_NAME:-penguins}-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - api
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:${API_PORT:-8000}}
+    networks:
+      - penguins_network
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+    name: ${PROJECT_NAME:-penguins}_mongo_data
+  cassandra_data:
+    name: ${PROJECT_NAME:-penguins}_cassandra_data
+  redis_data:
+    name: ${PROJECT_NAME:-penguins}_redis_data
+
+networks:
+  penguins_network:
+    name: ${PROJECT_NAME:-penguins}_network
+    driver: bridge
