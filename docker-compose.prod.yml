@@ -6,7 +6,7 @@ services:
     image: mongo:${MONGO_VERSION:-7.0}
     container_name: ${PROJECT_NAME:-penguins}-mongo
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      - "${MONGO_PORT:-34017}:27017"  # Offset: +7000
     environment:
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-penguins}
     volumes:
@@ -26,7 +26,7 @@ services:
     image: cassandra:${CASSANDRA_VERSION:-4.1}
     container_name: ${PROJECT_NAME:-penguins}-cassandra
     ports:
-      - "${CASSANDRA_PORT:-9042}:9042"
+      - "${CASSANDRA_PORT:-16042}:9042"  # Offset: +7000
     environment:
       CASSANDRA_CLUSTER_NAME: ${CASSANDRA_CLUSTER_NAME:-PenguinsCluster}
       CASSANDRA_DATACENTER: ${CASSANDRA_DATACENTER:-dc1}
@@ -50,7 +50,7 @@ services:
     image: redis:${REDIS_VERSION:-7.2-alpine}
     container_name: ${PROJECT_NAME:-penguins}-redis
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT:-13379}:6379"  # Offset: +7000
     volumes:
       - redis_data:/data
     networks:
@@ -90,8 +90,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: ${PROJECT_NAME:-penguins}-api
-    ports:
-      - "${API_PORT:-8000}:8000"
+    expose:
+      - "8000"
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -117,17 +117,42 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:${API_PORT:-8000}}
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-/api}
     container_name: ${PROJECT_NAME:-penguins}-frontend
-    ports:
-      - "${FRONTEND_PORT:-3000}:80"
+    expose:
+      - "80"
     depends_on:
       - api
     environment:
-      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:${API_PORT:-8000}}
+      REACT_APP_API_URL: /api
     networks:
       - penguins_network
     restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME:-penguins}-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+      - frontend
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - penguins_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   mongo_data:
@@ -136,6 +161,8 @@ volumes:
     name: ${PROJECT_NAME:-penguins}_cassandra_data
   redis_data:
     name: ${PROJECT_NAME:-penguins}_redis_data
+  nginx_cache:
+    name: ${PROJECT_NAME:-penguins}_nginx_cache
 
 networks:
   penguins_network:
