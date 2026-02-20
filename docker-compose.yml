@@ -6,7 +6,7 @@ services:
     image: mongo:7.0
     container_name: penguins-mongo
     ports:
-      - "27017:27017"
+      - "34017:27017"  # Offset: +7000
     environment:
       MONGO_INITDB_DATABASE: penguins
     volumes:
@@ -25,7 +25,7 @@ services:
     image: cassandra:4.1
     container_name: penguins-cassandra
     ports:
-      - "9042:9042"
+      - "16042:9042"  # Offset: +7000
     environment:
       CASSANDRA_CLUSTER_NAME: PenguinsCluster
       CASSANDRA_DATACENTER: dc1
@@ -46,7 +46,7 @@ services:
     image: redis:7.2-alpine
     container_name: penguins-redis
     ports:
-      - "6379:6379"
+      - "13379:6379"  # Offset: +7000
     volumes:
       - redis_data:/data
     networks:
@@ -83,8 +83,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: penguins-api
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -107,23 +107,49 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: penguins-frontend
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     depends_on:
       - api
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      REACT_APP_API_URL: http://api:8000
+      REACT_APP_API_URL: /api
     networks:
       - penguins_network
     command: npm start
+
+  # Nginx Reverse Proxy
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: penguins-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+      - frontend
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - penguins_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   mongo_data:
   cassandra_data:
   redis_data:
+  nginx_cache:
 
 networks:
   penguins_network:
