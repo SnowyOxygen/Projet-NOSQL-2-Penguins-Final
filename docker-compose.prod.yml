@@ -4,7 +4,7 @@ services:
   # MongoDB - Document Database
   mongodb:
     image: mongo:${MONGO_VERSION:-7.0}
-    container_name: ${PROJECT_NAME:-penguins}-mongo
+    container_name: ${PROJECT_NAME:-penguins-lrm-1}-mongo
     ports:
       - "${MONGO_PORT:-34017}:27017"  # Offset: +7000
     environment:
@@ -24,7 +24,7 @@ services:
   # Cassandra - Column-Family Database
   cassandra:
     image: cassandra:${CASSANDRA_VERSION:-4.1}
-    container_name: ${PROJECT_NAME:-penguins}-cassandra
+    container_name: ${PROJECT_NAME:-penguins-lrm-1}-cassandra
     ports:
       - "${CASSANDRA_PORT:-16042}:9042"  # Offset: +7000
     environment:
@@ -48,7 +48,7 @@ services:
   # Redis - In-Memory Cache
   redis:
     image: redis:${REDIS_VERSION:-7.2-alpine}
-    container_name: ${PROJECT_NAME:-penguins}-redis
+    container_name: ${PROJECT_NAME:-penguins-lrm-1}-redis
     ports:
       - "${REDIS_PORT:-13379}:6379"  # Offset: +7000
     volumes:
@@ -68,7 +68,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.init
-    container_name: ${PROJECT_NAME:-penguins}-db-init
+    container_name: ${PROJECT_NAME:-penguins-lrm-1}-db-init
     depends_on:
       mongodb:
         condition: service_healthy
@@ -89,7 +89,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: ${PROJECT_NAME:-penguins}-api
+    container_name: ${PROJECT_NAME:-penguins-lrm-1}-api
     expose:
       - "8000"
     depends_on:
@@ -118,7 +118,7 @@ services:
       dockerfile: Dockerfile
       args:
         REACT_APP_API_URL: ${REACT_APP_API_URL:-/api}
-    container_name: ${PROJECT_NAME:-penguins}-frontend
+    container_name: ${PROJECT_NAME:-penguins-lrm-1}-frontend
     expose:
       - "80"
     depends_on:
@@ -134,7 +134,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
-    container_name: ${PROJECT_NAME:-penguins}-nginx
+    container_name: ${PROJECT_NAME:-penguins-lrm-1}-nginx
     ports:
       - "80:80"
       - "443:443"
@@ -156,15 +156,15 @@ services:
 
 volumes:
   mongo_data:
-    name: ${PROJECT_NAME:-penguins}_mongo_data
+    name: ${PROJECT_NAME:-penguins-lrm-1}_mongo_data
   cassandra_data:
-    name: ${PROJECT_NAME:-penguins}_cassandra_data
+    name: ${PROJECT_NAME:-penguins-lrm-1}_cassandra_data
   redis_data:
-    name: ${PROJECT_NAME:-penguins}_redis_data
+    name: ${PROJECT_NAME:-penguins-lrm-1}_redis_data
   nginx_cache:
-    name: ${PROJECT_NAME:-penguins}_nginx_cache
+    name: ${PROJECT_NAME:-penguins-lrm-1}_nginx_cache
 
 networks:
   penguins_network:
-    name: ${PROJECT_NAME:-penguins}_network
+    name: ${PROJECT_NAME:-penguins-lrm-1}_network
     driver: bridge

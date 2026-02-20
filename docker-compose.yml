@@ -4,7 +4,7 @@ services:
   # MongoDB - Document Database
   mongodb:
     image: mongo:7.0
-    container_name: penguins-mongo
+    container_name: penguins-mongo-lrm-1
     ports:
       - "34017:27017"  # Offset: +7000
     environment:
@@ -23,7 +23,7 @@ services:
   # Cassandra - Column-Family Database
   cassandra:
     image: cassandra:4.1
-    container_name: penguins-cassandra
+    container_name: penguins-cassandra-lrm-1
     ports:
       - "16042:9042"  # Offset: +7000
     environment:
@@ -44,7 +44,7 @@ services:
   # Redis - In-Memory Cache
   redis:
     image: redis:7.2-alpine
-    container_name: penguins-redis
+    container_name: penguins-redis-lrm-1
     ports:
       - "13379:6379"  # Offset: +7000
     volumes:
@@ -62,7 +62,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.init
-    container_name: penguins-db-init
+    container_name: penguins-db-init-lrm-1
     depends_on:
       mongodb:
         condition: service_healthy
@@ -82,7 +82,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: penguins-api
+    container_name: penguins-api-lrm-1
     expose:
       - "8000"
     depends_on:
@@ -106,7 +106,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: penguins-frontend
+    container_name: penguins-frontend-lrm-1
     expose:
       - "3000"
     depends_on:
@@ -125,7 +125,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
-    container_name: penguins-nginx
+    container_name: penguins-nginx-lrm-1
     ports:
       - "80:80"
       - "443:443"
@@ -147,10 +147,15 @@ services:
 
 volumes:
   mongo_data:
+    name: penguins-lrm-1_mongo_data
   cassandra_data:
+    name: penguins-lrm-1_cassandra_data
   redis_data:
+    name: penguins-lrm-1_redis_data
   nginx_cache:
+    name: penguins-lrm-1_nginx_cache
 
 networks:
   penguins_network:
+    name: penguins-lrm-1_network
     driver: bridge
